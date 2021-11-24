@@ -54,8 +54,7 @@ void MidiLightEffect::apply(light::AddressableLight &it, const Color &current_co
               this->note_on_time_[note_index] = now;
 
               Color current_color = this->get_interpolated_color_(i, now);
-              this->set_led_transition_(i, current_color, Color::WHITE, this->note_on_fade_, now);
-              // (Color::random_color() * scaled_velocity).raw_32;
+              this->set_led_transition_(i, current_color, Color::WHITE * scaled_velocity, this->note_on_fade_, now);
 
               //ESP_LOGD(TAG, "%i: begin ON transition: %#08x - %#08x. length: %i", i, this->start_led_colors_[i], this->target_led_colors_[i], this->transition_length_[i]);
           }
