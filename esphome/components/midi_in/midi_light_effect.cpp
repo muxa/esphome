@@ -36,16 +36,16 @@ void MidiLightEffect::apply(light::AddressableLight &it, const Color &current_co
   for (int i = it.size() - 1; i >= 0; i--)
   {
       uint8_t note_index = this->start_note_ + i;
-      if (this->midi_->note_velocities[note_index] > 0)
+      if (this->midi_->note_velocity(note_index) > 0)
       {
-          //ESP_LOGD(TAG, "%i: note is ON: %#02x. status: %i", i, this->midi_->note_velocities[note_index], this->note_statuses_[note_index]);
+          //ESP_LOGD(TAG, "%i: note is ON: %#02x. status: %i", i, this->midi_->note_velocity(note_index), this->note_statuses_[note_index]);
 
           // note is on
           if (this->note_statuses_[note_index] != NoteStatus::PRESSED)
           {
               // turn on light
-              uint8_t scaled_velocity = 128 + this->midi_->note_velocities[note_index];
-              if (this->midi_->soft_pedal > 0)
+              uint8_t scaled_velocity = 128 + this->midi_->note_velocity(note_index);
+              if (this->midi_->control_value(midi::MidiControlChangeNumber::SoftPedal) > 0)
               {
                   // soft pedal
                   scaled_velocity = scaled_velocity / 2;
@@ -64,7 +64,7 @@ void MidiLightEffect::apply(light::AddressableLight &it, const Color &current_co
           //ESP_LOGD(TAG, "%i: note OFF. status: %i", i, this->note_statuses_[note_index]);
 
           // note released
-          if (this->midi_->sustain_pedal > 0)
+          if (this->midi_->control_value(midi::MidiControlChangeNumber::Sustain) > 0)
           {
               this->note_statuses_[note_index] = NoteStatus::SUSTAINED;
           }
