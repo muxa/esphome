@@ -21,6 +21,8 @@ class MidiLightEffect : public light::AddressableLightEffect {
   void set_keys(uint8_t keys) { this->keys_ = keys; }
   void set_note_on_fade(uint32_t note_on_fade) { this->note_on_fade_ = note_on_fade; }
   void set_note_off_fade(uint32_t note_off_fade) { this->note_off_fade_ = note_off_fade; }
+  void set_foreground_light(light::AddressableLightState *foreground_light) { this->foreground_light_ = foreground_light; }
+  void set_background_light(light::AddressableLightState *background_light) { this->background_light_ = background_light; }
 
  protected:
   midi_in::MidiInComponent *midi_;
@@ -30,6 +32,8 @@ class MidiLightEffect : public light::AddressableLightEffect {
   uint8_t keys_;
   uint32_t note_on_fade_;
   uint32_t note_off_fade_;
+  light::AddressableLightState *foreground_light_;
+  light::AddressableLightState *background_light_;
 
  protected:
     // This looks crazy, but it reduces to 6x^5 - 15x^4 + 10x^3 which is just a smooth sigmoid-like
