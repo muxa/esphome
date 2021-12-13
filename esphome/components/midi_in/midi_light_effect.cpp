@@ -96,9 +96,38 @@ void MidiLightEffect::apply(light::AddressableLight &it, const Color &current_co
           }
       }
 
-      it[i] = this->get_interpolated_color_(i, now, current_color);
+      if (this->bleed_ == 0.0) {
+        it[i] = this->get_interpolated_color_(i, now, current_color);
+      }
 
       //ESP_LOGD(TAG, "%i: progress: %.2f (%i-%i/%i), color: %#08x", i, p, now, this->transition_start_time_[i], this->transition_length_[i], interpolated_color);
+  }
+
+  if (this->bleed_ > 0.0) {
+    float previous_opacity_start = this->led_transitions_[it.size() - 1].fg_opacity_start;
+    float previous_opacity_target = this->led_transitions_[it.size() - 1].fg_opacity_target;
+    float current_opacity_start;
+    float current_opacity_target;
+    for (int i = it.size() - 2; i >= 0; i--) {
+
+      this->led_transitions_[i+1].fg_opacity_start = 
+        previous_opacity_start * (1.0 - this->bleed_) + this->led_transitions_[i].fg_opacity_start * this->bleed_;
+      this->led_transitions_[i+1].fg_opacity_target = 
+        previous_opacity_target * (1.0 - this->bleed_) + this->led_transitions_[i].fg_opacity_target * this->bleed_;
+
+      current_opacity_start = this->led_transitions_[i].fg_opacity_start;
+      current_opacity_target = this->led_transitions_[i].fg_opacity_target;
+
+      this->led_transitions_[i].fg_opacity_start = 
+        current_opacity_start * (1.0 - this->bleed_) + previous_opacity_start * this->bleed_;
+      this->led_transitions_[i].fg_opacity_target = 
+        current_opacity_target * (1.0 - this->bleed_) + previous_opacity_target * this->bleed_;
+
+      previous_opacity_start = current_opacity_start;
+      previous_opacity_target = current_opacity_target;
+
+      it[i] = this->get_interpolated_color_(i, now, current_color);
+    }
   }
 
   it.schedule_show();

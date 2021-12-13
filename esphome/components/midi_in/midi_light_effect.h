@@ -32,6 +32,7 @@ class MidiLightEffect : public light::AddressableLightEffect {
   uint8_t keys_;
   uint32_t note_on_fade_;
   uint32_t note_off_fade_;
+  float bleed_{0.0};
   light::AddressableLightState *foreground_light_;
   light::AddressableLightState *background_light_;
 
