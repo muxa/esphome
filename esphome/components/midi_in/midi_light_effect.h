@@ -40,66 +40,31 @@ class MidiLightEffect : public light::AddressableLightEffect {
     // transition from 0 to 1 on x = [0, 1]
     static float smoothed_progress(float x) { return x * x * x * (x * (x * 6.0f - 15.0f) + 10.0f); }
 
-    void set_background_color_(const Color &current_color, const uint32_t length)
-    {
-        //ESP_LOGD(TAG, "apply: %#08x (initial_run: %i)", current_color.raw_32, initial_run ? 1 : 0);
-
-        const Color background_color = current_color * 128;
-        uint32_t now = millis();
-
-        for (int i = 0; i < led_transitions_.size(); i++)
-        {
-            auto led_color = this->get_interpolated_color_(i, now);
-            this->set_led_transition_(i, 
-                led_color, 
-                background_color,
-                length, 
-                now);
-        }
-    }
-
-    void set_background_rainbow_(light::AddressableLight *it, const Color &current_color, const uint32_t length)
-    {
-        //ESP_LOGD(TAG, "apply: %#08x (initial_run: %i)", current_color.raw_32, initial_run ? 1 : 0);
-
-        uint32_t now = millis();
-
-        light::ESPHSVColor bachground_hsv;
-        bachground_hsv.value = 128;
-        bachground_hsv.saturation = 240;
-        uint16_t hue = (now * 10) % 0xFFFF;
-        const uint16_t add = 0xFFFF / 50;
-        
-        for (int i = 0; i < led_transitions_.size(); i++)
-        {
-            bachground_hsv.hue = hue >> 8;
-            this->led_transitions_[i].background = bachground_hsv.to_rgb();
-            Color led_color = it->get(i).get();// this->get_interpolated_color_(i, now);
-            this->set_led_transition_(i, 
-                led_color, 
-                this->led_transitions_[i].background,
-                length, 
-                now);
-            
-            hue += add;
-        }
-    }
-
-    void set_led_transition_(const int i, Color start_color, Color target_color, const uint32_t length, const uint32_t now)
-    {
-        //ESP_LOGD(TAG, "apply: %#08x (initial_run: %i)", current_color.raw_32, initial_run ? 1 : 0);
-
-        this->led_transitions_[i].start = start_color;
-        this->led_transitions_[i].target = target_color;
-        this->led_transitions_[i].start_time = now;
-        this->led_transitions_[i].length = length;
-    }
-
-    Color get_interpolated_color_(const int i, const uint32_t now)
+    float get_interpolated_opacity_(const int i, const uint32_t now)
     {
         float p = this->get_progress_(this->led_transitions_[i].start_time, this->led_transitions_[i].length, now);
-        float v = MidiLightEffect::smoothed_progress(p);
-        return this->interpolate_color_(this->led_transitions_[i].start, this->led_transitions_[i].target, p);
+        // float v = MidiLightEffect::smoothed_progress(p);
+        return esphome::lerp(p, this->led_transitions_[i].fg_opacity_start, this->led_transitions_[i].fg_opacity_target);
+    }
+
+    Color get_interpolated_color_(const int i, const uint32_t now, const Color &current_color)
+    {
+        float opacity = this->get_interpolated_opacity_(i, now);
+
+        Color fg_color;
+        if (this->fg_light_ != nullptr) {
+            fg_color = this->fg_light_->get(i).get();
+        } else {
+            fg_color = current_color;
+        }
+        Color bg_color;
+        if (this->bg_light_ != nullptr) {
+            bg_color = this->bg_light_->get(i).get();
+        } else {
+            bg_color = Color::BLACK;
+        }
+
+        return this->interpolate_color_(bg_color, fg_color, opacity);
     }
 
     /// The progress of this transition, on a scale of 0 to 1.
@@ -132,9 +97,9 @@ class MidiLightEffect : public light::AddressableLightEffect {
 
   struct ColorTransition
   {
-      Color background;
-      Color start;
-      Color target;
+      float fg_opacity_start;
+      float fg_opacity_target;
+
       uint32_t start_time;
       uint32_t length;
   };
@@ -146,6 +111,9 @@ class MidiLightEffect : public light::AddressableLightEffect {
   NoteStatus note_statuses_[128];
   uint32_t note_on_time_[128];
 
+ private:
+  light::AddressableLight *fg_light_{nullptr};
+  light::AddressableLight *bg_light_{nullptr};
 };
 
 }  // namespace midi_in
